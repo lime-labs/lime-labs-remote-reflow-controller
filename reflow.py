@@ -9,8 +9,8 @@
 # No need to ever touch or fiddle with mains power!
 #
 # @author: Peter Winter <code@limelabs.io>
-# @version: 1.0.0
-# @date: 10/29/2018
+# @version: 1.0.1
+# @release: 10/30/2018
 
 import requests, time
 import tplink_smartplug as plug
@@ -53,13 +53,24 @@ except:
     exit(1)
 
 # functions
+def getTimeString():
+    runtime = int(time.time() - time_base)
+    minutes = int(runtime / 60)
+    seconds = runtime % 60
+    if seconds < 10:
+        seconds = '0' + str(seconds)
+
+    return str(minutes) + ':' + str(seconds)
+
 def getTemp():
     r = requests.get('http://' + thermocouple_ip + '/' + unit)
     temp = r.json()[unit]
     timestamp = round(time.time() - time_base, 2)
     # TODO: create graph ouput from gathered data after the run. Maybe just a CSV file for starters
-    print(temp)
-    print(str(timestamp))
+
+    print('Time: ' + getTimeString())
+    print('>>>>>>>>>>>>>>>>> ' + str(temp))
+
     return temp
 
 def getPlugRelayState():
@@ -100,7 +111,7 @@ def rampUp(phase, maxKpersec, target, duration = -1, reflow_temp = 0.0, peak_sta
                 if not peak_reset:
                     duration = duration_at_peak
                     peak_reset = True
-            print('Peak zone of ' + str(peak_start) + ' - ' + target + ' degrees reached). ' + str(duration) + ' seconds remaining in peak zone.')
+            print('Peak zone of ' + str(peak_start) + ' - ' + str(target) + ' degrees reached). ' + str(duration) + ' seconds remaining in peak zone.')
 
         if kpersec > maxKpersec:
             print('Max K/s reached, waiting before continuing to ramp up...')
@@ -119,7 +130,7 @@ def rampUp(phase, maxKpersec, target, duration = -1, reflow_temp = 0.0, peak_sta
 
     # in case there's time left on the optional duration timer, hold the temp for the remainder of seconds
     if duration > 0:
-        print('Target temp of ' + str(target) + ' reached, but ' + duration + ' seconds left on timer. Holding temp...')
+        print('Target temp of ' + str(target) + ' reached, but ' + str(duration) + ' seconds left on timer. Holding temp...')
         while duration > 0:
             temp = getTemp()
 
@@ -153,16 +164,16 @@ def coolDown(maxKpersec, target):
 
         # if cooldown happens to fast
         if kpersec < maxKpersec:
-            print('>>>>>> WARNING! Cooldown rate exceeds ' + maxKpersec + ' K/s at currently ' + kpersec + ' K/s.')
+            print('>>>>>> WARNING! Cooldown rate exceeds ' + str(maxKpersec) + ' K/s at currently ' + str(kpersec) + ' K/s.')
             print('>>>>>> Consider less aggressive cooling to reduce stress on the components!')
         else:
-            print('K/s ' + str(kpersec))
+            print('K/s: ' + str(kpersec))
 
         previous_temp = temp
         time.sleep(1)
 
     # TODO: play sound here
-    print('Congrats! Your PCB is ready. Be careful, it might still be a little warm at ' + target + ' degrees.')
+    print('Congrats! Your PCB is ready. Be careful, it might still be a little warm at ' + str(target) + ' degrees.')
 
 
 # let's roll
@@ -196,9 +207,6 @@ maxkpersec = int(parser.get('cooldown', 'maxkpersec'))
 
 coolDown(maxkpersec, target)
 
-runtime = int(time.time() - time_base)
-minutes = int(runtime / 60)
-seconds = runtime % 60
-print('The entire reflow process took ' + str(minutes) + ':' + str(seconds) + ' minutes.')
+print('The entire reflow process took ' + getTimeString() + ' minutes.')
 
 exit(0)
